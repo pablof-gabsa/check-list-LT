@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checklist temas pendientes LIRIOS DEL TALAR</title>
+    <title>Checklist C.C. Lirios del Talar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -27,7 +27,7 @@
         @import url('https://rsms.me/inter/inter.css');
         html { font-family: 'Inter', sans-serif; }
         body { background-color: #f3f4f6; }
-        .status-select {
+        .status-select, .responsible-select {
             -webkit-appearance: none; -moz-appearance: none; appearance: none;
             background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.5em 1.5em;
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -61,7 +61,12 @@
                     </div>
                      <div>
                         <label for="responsable" class="block text-sm font-medium text-gray-700">Responsable</label>
-                        <input type="text" id="responsable" name="responsable" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-institutional focus:ring-institutional">
+                        <select id="responsable" name="responsable" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-institutional focus:ring-institutional">
+                            <option>Administrador</option>
+                            <option>Intendente</option>
+                            <option>Proveedor</option>
+                            <option>Otros</option>
+                        </select>
                     </div>
                     <div>
                         <label for="deadline" class="block text-sm font-medium text-gray-700">Deadline</label>
@@ -77,7 +82,7 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-institutional">Checklist temas pendientes GABSA</h1>
+            <h1 class="text-3xl sm:text-4xl font-bold text-institutional">Checklist temas pendientes C.C. Lirios del Talar</h1>
             <p class="text-md text-gray-600 mt-2">Seguimiento interactivo del estado de temas pendientes</p>
         </header>
 
@@ -144,10 +149,11 @@
         let currentFilter = 'Todos';
 
         const rubros = ['Operativos', 'Obras de infraestructura', 'Administrativos', 'Archivado'];
+        const responsibleOptions = ['Administrador', 'Intendente', 'Proveedor', 'Otros'];
+        
         const statusOptions = { 'Pendiente': 'bg-yellow-100 text-yellow-800 border-yellow-300', 'OK': 'bg-institutional/20 text-institutional border-institutional/40', 'En Proceso': 'bg-blue-100 text-blue-800 border-blue-300' };
         const statusColors = { 'Pendiente': '#FBBF24', 'OK': '#009999', 'En Proceso': '#60A5FA' };
         const statusOrder = ['Pendiente', 'En Proceso', 'OK'];
-        // CORREGIDO: Código SVG completo para los íconos
         const rubroIcons = {
             'Operativos': `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
             'Obras de infraestructura': `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>`,
@@ -156,16 +162,14 @@
         };
         
         // --- FUNCIONES DE DATOS (FIREBASE) ---
-        function saveData() {
-            database.ref('tasks').set(checklistData);
-        }
-
+        function saveData() { database.ref('tasks').set(checklistData); }
         function loadData() {
             const tasksRef = database.ref('tasks');
             tasksRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
-                    checklistData = data.map(item => ({...item, isEditing: item.isEditing || false}));
+                    checklistData = Array.isArray(data) ? data : Object.values(data);
+                    checklistData = checklistData.map(item => ({...item, isEditing: item.isEditing || false}));
                 } else {
                     checklistData = [];
                 }
@@ -178,10 +182,7 @@
             const container = document.getElementById('checklist-container');
             container.innerHTML = '';
             const filteredData = checklistData.filter(item => currentFilter === 'Todos' || item.estado === currentFilter);
-            const groupedData = filteredData.reduce((acc, item) => {
-                (acc[item.rubro] = acc[item.rubro] || []).push(item);
-                return acc;
-            }, {});
+            const groupedData = filteredData.reduce((acc, item) => { (acc[item.rubro] = acc[item.rubro] || []).push(item); return acc; }, {});
 
             rubros.forEach(rubro => {
                 const items = groupedData[rubro] || [];
@@ -210,8 +211,7 @@
                             const editInput = document.createElement('textarea');
                             editInput.value = item.requerimiento;
                             editInput.className = 'flex-1 p-1 border rounded-md w-full';
-                            editInput.id = `edit-input-${item.id}`;
-                            editInput.rows = 2;
+                            editInput.id = `edit-input-${item.id}`; editInput.rows = 2;
                             taskRow.appendChild(editInput);
                         } else {
                             const requerimientoP = document.createElement('p');
@@ -219,17 +219,23 @@
                             requerimientoP.textContent = item.requerimiento;
                             taskRow.appendChild(requerimientoP);
                         }
+                        
                         const detailsDiv = document.createElement('div');
                         detailsDiv.className = 'flex items-center gap-x-4';
-                        const responsibleDiv = document.createElement('div');
-                        responsibleDiv.className = 'flex items-center text-sm';
-                        responsibleDiv.innerHTML = `<span class="text-gray-500 mr-2 font-semibold">Resp:</span>`;
-                        const responsibleInput = document.createElement('input');
-                        responsibleInput.type = 'text'; responsibleInput.value = item.responsable;
-                        responsibleInput.className = 'p-1 border-b focus:border-institutional focus:outline-none w-28';
-                        responsibleInput.onchange = (e) => handleFieldChange(e, item.id, 'responsable');
-                        responsibleDiv.appendChild(responsibleInput);
-                        detailsDiv.appendChild(responsibleDiv);
+
+                        // CORREGIDO: Creación de la lista desplegable de responsables en cada tarea
+                        const responsibleSelect = document.createElement('select');
+                        responsibleSelect.className = 'responsible-select p-1 border-b focus:border-institutional focus:outline-none w-36 text-sm';
+                        responsibleOptions.forEach(resp => {
+                            const option = document.createElement('option');
+                            option.value = resp;
+                            option.textContent = resp;
+                            if (item.responsable === resp) option.selected = true;
+                            responsibleSelect.add(option);
+                        });
+                        responsibleSelect.onchange = (e) => handleFieldChange(e, item.id, 'responsable');
+                        detailsDiv.appendChild(responsibleSelect);
+                        
                         const deadlineDiv = document.createElement('div');
                         deadlineDiv.className = 'flex items-center text-sm';
                         deadlineDiv.innerHTML = `<svg class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`;
@@ -240,17 +246,19 @@
                         deadlineDiv.appendChild(deadlineInput);
                         detailsDiv.appendChild(deadlineDiv);
                         taskRow.appendChild(detailsDiv);
-                        const selectElement = document.createElement('select');
-                        selectElement.className = 'status-select w-full sm:w-auto p-2 border rounded-md text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-institutional';
+                        
+                        const statusSelect = document.createElement('select');
+                        statusSelect.className = 'status-select w-full sm:w-auto p-2 border rounded-md text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-institutional';
                         statusOrder.forEach(status => {
                             const option = document.createElement('option');
                             option.value = status; option.textContent = status;
                             if (item.estado === status) option.selected = true;
-                            selectElement.add(option);
+                            statusSelect.add(option);
                         });
-                        applyStatusStyles(selectElement, item.estado);
-                        selectElement.addEventListener('change', (e) => handleStatusChange(e, item.id));
-                        taskRow.appendChild(selectElement);
+                        applyStatusStyles(statusSelect, item.estado);
+                        statusSelect.addEventListener('change', (e) => handleStatusChange(e, item.id));
+                        taskRow.appendChild(statusSelect);
+
                         const actionsDiv = document.createElement('div');
                         actionsDiv.className = 'flex items-center gap-x-2';
                         if (item.isEditing) {
@@ -336,45 +344,18 @@
         }
 
         // --- MANEJADORES DE EVENTOS ---
-        // CORREGIDO: Se busca el índice para modificar el array y luego guardar
-        function handleStatusChange(event, itemId) {
-            const itemIndex = checklistData.findIndex(d => d.id === itemId);
-            if (itemIndex > -1) { checklistData[itemIndex].estado = event.target.value; saveData(); }
-        }
-        function handleFieldChange(event, itemId, field) {
-            const itemIndex = checklistData.findIndex(d => d.id === itemId);
-            if (itemIndex > -1) { checklistData[itemIndex][field] = event.target.value; saveData(); }
-        }
-        function handleFilterClick(event) {
-            const filter = event.target.dataset.filter;
-            if (filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active')); event.target.classList.add('active'); renderChecklist(); }
-        }
-        function handleMoveTask(event, itemId) {
-            const itemIndex = checklistData.findIndex(d => d.id === itemId);
-            if (itemIndex > -1) { checklistData[itemIndex].rubro = event.target.value; saveData(); }
-        }
-        function handleDeleteTask(itemId) {
-            const taskToDelete = checklistData.find(d => d.id === itemId);
-            if (confirm(`¿Estás seguro de que quieres eliminar la tarea "${taskToDelete.requerimiento}"?`)) { checklistData = checklistData.filter(d => d.id !== itemId); saveData(); }
-        }
-        function handleToggleEdit(itemId) {
-            const itemIndex = checklistData.findIndex(d => d.id === itemId);
-            if (itemIndex > -1) { checklistData.forEach((item, index) => item.isEditing = index === itemIndex); renderChecklist(); }
-        }
-        function handleSaveTask(itemId) {
-            const itemIndex = checklistData.findIndex(d => d.id === itemId);
-            const inputElement = document.getElementById(`edit-input-${itemId}`);
-            if (itemIndex > -1 && inputElement) {
-                checklistData[itemIndex].requerimiento = inputElement.value;
-                checklistData[itemIndex].isEditing = false;
-                saveData();
-            }
-        }
+        function handleStatusChange(event, itemId) { const itemIndex = checklistData.findIndex(d => d.id === itemId); if (itemIndex > -1) { checklistData[itemIndex].estado = event.target.value; saveData(); } }
+        function handleFieldChange(event, itemId, field) { const itemIndex = checklistData.findIndex(d => d.id === itemId); if (itemIndex > -1) { checklistData[itemIndex][field] = event.target.value; saveData(); } }
+        function handleFilterClick(event) { const filter = event.target.dataset.filter; if (filter) { currentFilter = filter; document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active')); event.target.classList.add('active'); renderChecklist(); } }
+        function handleMoveTask(event, itemId) { const itemIndex = checklistData.findIndex(d => d.id === itemId); if (itemIndex > -1) { checklistData[itemIndex].rubro = event.target.value; saveData(); } }
+        function handleDeleteTask(itemId) { const taskToDelete = checklistData.find(d => d.id === itemId); if (confirm(`¿Estás seguro de que quieres eliminar la tarea "${taskToDelete.requerimiento}"?`)) { checklistData = checklistData.filter(d => d.id !== itemId); saveData(); } }
+        function handleToggleEdit(itemId) { const itemIndex = checklistData.findIndex(d => d.id === itemId); if (itemIndex > -1) { checklistData.forEach((item, index) => item.isEditing = index === itemIndex); renderChecklist(); } }
+        function handleSaveTask(itemId) { const itemIndex = checklistData.findIndex(d => d.id === itemId); const inputElement = document.getElementById(`edit-input-${itemId}`); if (itemIndex > -1 && inputElement) { checklistData[itemIndex].requerimiento = inputElement.value; checklistData[itemIndex].isEditing = false; saveData(); } }
 
         // --- FUNCIONES AUXILIARES ---
         function applyStatusStyles(element, status) { element.className = element.className.split(' ').filter(c => !Object.values(statusOptions).join(' ').includes(c)).join(' '); const styles = statusOptions[status] || 'bg-gray-100 text-gray-800 border-gray-300'; element.classList.add(...styles.split(' ')); }
         function toggleAccordion(accordionItem) { const content = accordionItem.querySelector('.accordion-content'); const icon = accordionItem.querySelector('svg:last-child'); content.classList.toggle('open'); icon.classList.toggle('rotate-180'); }
-        function exportToPDF() { /* ... (código de la versión anterior) ... */ }
+        function exportToPDF() { const { jsPDF } = window.jspdf; const header = document.querySelector('header'); const checklistContainer = document.getElementById('checklist-container'); const printContainer = document.createElement('div'); printContainer.style.padding = '20px'; printContainer.style.backgroundColor = 'white'; printContainer.innerHTML = header.outerHTML + checklistContainer.outerHTML; printContainer.querySelectorAll('.cursor-pointer svg.transition-transform').forEach(el => el.remove()); printContainer.querySelectorAll('.flex.items-center.gap-x-2').forEach(el => el.remove()); printContainer.querySelectorAll('input[type="text"], input[type="date"]').forEach(input => { const text = document.createElement('span'); text.textContent = input.value; text.className = 'text-sm p-1'; input.parentNode.replaceChild(text, input); }); printContainer.querySelectorAll('.status-select, .responsible-select').forEach(select => { const status = select.value; const span = document.createElement('span'); span.textContent = status; span.className = 'p-2 rounded-md text-sm font-semibold ' + (statusOptions[status] || ''); select.parentNode.replaceChild(span, select); }); document.body.appendChild(printContainer); html2canvas(printContainer, { scale: 2, windowWidth: printContainer.scrollWidth, windowHeight: printContainer.scrollHeight }).then(canvas => { document.body.removeChild(printContainer); const imgData = canvas.toDataURL('image/png'); const pdf = new jsPDF('p', 'mm', 'a4'); const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = pdf.internal.pageSize.getHeight(); const canvasWidth = canvas.width; const canvasHeight = canvas.height; const ratio = canvasWidth / canvasHeight; const imgWidth = pdfWidth - 20; const imgHeight = imgWidth / ratio; let heightLeft = imgHeight; let position = 10; pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - 20); while (heightLeft > 0) { position = position - pdfHeight + 20; pdf.addPage(); pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight); heightLeft -= (pdfHeight - 20); } pdf.save(`checklist-pendientes-${new Date().toISOString().slice(0,10)}.pdf`); }); }
         
         // --- INICIALIZACIÓN ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -403,5 +384,4 @@
         });
     </script>
 </body>
-
 </html>
