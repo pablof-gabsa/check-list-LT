@@ -231,7 +231,7 @@
                         <button class="filter-btn active py-1 px-3 rounded-full text-sm transition-colors border" data-filter-type="date" data-filter="Todas">Todas</button>
                         <button class="filter-btn py-1 px-3 rounded-full text-sm transition-colors border" data-filter-type="date" data-filter="Vencidas">Vencidas</button>
                         <button class="filter-btn py-1 px-3 rounded-full text-sm transition-colors border" data-filter-type="date" data-filter="Hoy">Vencen Hoy</button>
-                        <button class="filter-btn py-1 px-3 rounded-full text-sm transition-colors border" data-filter-type="date" data-filter="Este Mes">Vencen este mes</button>
+                         <button class="filter-btn py-1 px-3 rounded-full text-sm transition-colors border" data-filter-type="date" data-filter="Este Mes">Vencen este mes</button>
                         <button class="filter-btn py-1 px-3 rounded-full text-sm transition-colors border" data-filter-type="date" data-filter="Proximas">Próximas (7d)</button>
                     </div>
                 </div>
@@ -378,7 +378,7 @@
 
         
         function loadInitialData() {
-            const defaultRubros = ['Operativos', 'Obras de infraestructura', 'Administrativos', 'Eliminado'];
+            const defaultRubros = ['Operativos', 'Obras de infraestructura', 'Administrativos', 'Tramite de subdivision', 'Eliminado'];
             const defaultResponsables = ['Administrador', 'Intendente', 'Proveedor', 'Operadora', 'RRHH', 'Compras', 'Otros'];
             
             const rubrosPromise = database.ref('rubros').once('value');
@@ -509,6 +509,7 @@
         }
 
 
+        // MODIFICADO: Lógica de filtro "Hoy"
         function getFilteredData() {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -524,7 +525,7 @@
                 filtered = filtered.filter(item => {
                     if (!item.deadline) return false;
                     const taskDate = new Date(item.deadline + 'T00:00:00');
-                    if (!taskDate || isNaN(taskDate)) return false; 
+                    if (!taskDate || isNaN(taskDate)) return false;
 
                     switch (currentDateFilter) {
                         case 'Vencidas':
@@ -536,7 +537,7 @@
                         case 'Proximas':
                             const sevenDaysFromNow = new Date(today);
                             sevenDaysFromNow.setDate(today.getDate() + 7);
-                            return taskDate.getTime() >= today.getTime() && taskDate.getTime() <= sevenDaysFromNow.getTime(); 
+                            return taskDate.getTime() > today.getTime() && taskDate.getTime() <= sevenDaysFromNow.getTime();
                         default:
                             return true;
                     }
@@ -553,8 +554,8 @@
             const fragment = document.createDocumentFragment();
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const filteredData = getFilteredData();
-            const groupedData = filteredData.reduce((acc, item) => { (acc[item.rubro] = acc[item.rubro] || []).push(item); return acc; }, {});
+
+            const groupedData = getFilteredData().reduce((acc, item) => { (acc[item.rubro] = acc[item.rubro] || []).push(item); return acc; }, {});
 
             rubros.forEach(rubro => {
                 const itemsInRubro = checklistData.filter(i => i.rubro === rubro);
@@ -597,13 +598,13 @@
                         itemsToShow.sort((a, b) => {
                             const aHasDate = a.deadline && a.deadline.trim() !== '';
                             const bHasDate = b.deadline && b.deadline.trim() !== '';
-                            if (aHasDate && !bHasDate) return -1; 
-                            if (!aHasDate && bHasDate) return 1;  
+                            if (!aHasDate && bHasDate) return -1; // a (con fecha) va ANTES que b (sin fecha)
+                            if (!aHasDate && bHasDate) return 1;  // a (sin fecha) va DESPUÉS que b (con fecha)
                             if (!aHasDate && !bHasDate) {
-                                return a.requerimiento.localeCompare(b.requerimiento); 
+                                return a.requerimiento.localeCompare(b.requerimiento);
                             }
                             if (aHasDate && bHasDate) {
-                                return new Date(a.deadline) - new Date(b.deadline); 
+                                return new Date(a.deadline) - new Date(b.deadline);
                             }
                             return 0;
                         });
